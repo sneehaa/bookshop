@@ -1,6 +1,5 @@
-# bookshop
-
-A new Flutter project.
+# Bookshop
+A Flutter Project about buying books.
 
 ## Getting Started
 
