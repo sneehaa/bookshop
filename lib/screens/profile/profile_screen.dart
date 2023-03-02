@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                       image: const DecorationImage(
                         image: AssetImage(
-                          "assets/images/dog.png",
+                          "assets/images/product_2.png",
                         ),
                       ),
                     ),

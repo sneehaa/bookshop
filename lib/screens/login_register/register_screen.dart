@@ -1,6 +1,11 @@
 
+import 'dart:developer';
+
+import 'package:bookshop/screens/home/home_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'login_screen.dart';
 
@@ -16,9 +21,96 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _passwordVisible = false;
 
+  var email = "";
+  var password = "";
+  var confirmpassword = "";
+
   TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
   TextEditingController _confirmpasswordController = TextEditingController();
+
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmpasswordController.dispose();
+    super.dispose();
+  }
+
+  registration() async {
+    if (password == confirmpassword) {
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
+        print(UserCredential);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: Colors.blue,
+            content: Text(
+              "Reistration Successfully.. Please Log-in",
+              style: TextStyle(fontSize: 19),
+            )));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => LoginScreen()));
+      } on FirebaseAuthException catch (e) {
+        if (e.code == "weak-password") {
+          print("Password is too weak");
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(
+                "Password is too weak",
+                style: TextStyle(fontSize: 19),
+              )));
+        } else if (e.code == "email-already-in-use") {
+          print("Account already exist");
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(
+                "Account already exist",
+                style: TextStyle(fontSize: 19),
+              )));
+        }
+      }
+    } else {
+      print("Password and confirm Password does not match");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Password and confirm Password does not match",
+            style: TextStyle(fontSize: 19),
+          )));
+    }
+  }
+
+  String radioClickedValue = "";
+  bool? checkBoxValue1 = false;
+  bool? checkBoxValue2 = false;
+
+  // ignore: unused_elementa
+  _handleGoogleBtnClick() {
+    _signInWithGoogle().then((user) {
+      log('\nUser: ${user.user} ');
+      log('\nUserAdditionalInfo: ${user.additionalUserInfo} ');
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => HomeScreen()));
+    });
+  }
+
+  Future<UserCredential> _signInWithGoogle() async {
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication? googleAuth =
+    await googleUser?.authentication;
+
+    // Create a new credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth?.accessToken,
+      idToken: googleAuth?.idToken,
+    );
+
+    // Once signed in, return the UserCredential
+    return await FirebaseAuth.instance.signInWithCredential(credential);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +165,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
+                        } if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          return 'Please enter a valid email';
                         }
                         return null;
                       },
@@ -167,7 +261,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: ElevatedButton(
                       onPressed: (){
                         if (_formKey.currentState!.validate()) {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+                          setState(() {
+                            email = _emailController.text;
+                            password = _passwordController.text;
+                            confirmpassword = _confirmpasswordController.text;
+                          });
+                          registration();
                         }
                       },
                       style: ElevatedButton.styleFrom(
